@@ -10,6 +10,9 @@ A hands-on activity log documenting our practice session on **passing data betwe
 
 ---
 
+## 📺 Screeenshots
+<img width="946" height="2047" alt="c5a6555f-f8a8-4c81-b926-248ee58a4bee" src="https://github.com/user-attachments/assets/9f822c64-a50b-4969-b2e9-33a7acf7ca43" />
+
 ## 🎯 Activity Overview
 
 This activity focuses on understanding how **props** flow from a Parent component down to Child components in React Native — one of the core concepts of React's component architecture.
