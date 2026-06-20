@@ -1,2 +1,3 @@
 Screenshot of the activity
-<img width="946" height="2047" alt="52643960-2eef-4fba-ae69-fb8c812ac1e1" src="https://github.com/user-attachments/assets/673ed9ba-c02d-495f-9548-e306323a2d1c" />
+<img width="946" height="2047" alt="55a4abdc-7618-49aa-a404-a2cf73b38fc3" src="https://github.com/user-attachments/assets/5bcc0259-0591-4f05-ad3d-e399ad7541b0" />
+
