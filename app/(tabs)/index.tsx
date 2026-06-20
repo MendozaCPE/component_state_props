@@ -1,8 +1,57 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
-import CounterButton from '../../components/CounterButton';
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
+import CounterButton from "../../components/CounterButton";
+import { FontAwesome5 } from "@expo/vector-icons";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  withSequence,
+  runOnJS,
+  Easing,
+} from "react-native-reanimated";
 
-interface CounterDisplayProps {
+function FallingCoin({ id, onComplete }: { id: number; onComplete: (id: number) => void }) {
+  const translateY = useSharedValue(-60);
+  const opacity = useSharedValue(1);
+  const scale = useSharedValue(0.5);
+
+  useEffect(() => {
+    scale.value = withSpring(1);
+    translateY.value = withTiming(
+      100,
+      { duration: 400, easing: Easing.in(Easing.quad) },
+      (finished) => {
+        if (finished) {
+          opacity.value = withTiming(0, { duration: 100 }, (opacityFinished) => {
+            if (opacityFinished) {
+              runOnJS(onComplete)(id);
+            }
+          });
+        }
+      }
+    );
+  }, [id, onComplete, opacity, scale, translateY]);
+
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }, { scale: scale.value }],
+    opacity: opacity.value,
+    position: "absolute",
+    top: -60,
+    zIndex: 4,
+  }));
+
+  return (
+    <Animated.View style={style}>
+      <View style={childStyles.coin}>
+        <Text style={childStyles.coinText}>$</Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+interface PiggyBankDisplayProps {
   count: number;
   onAdd: () => void;
   onMinus: () => void;
@@ -13,7 +62,7 @@ interface CounterDisplayProps {
   onMinusPressOut: () => void;
 }
 
-function CounterDisplay({
+function PiggyBankDisplay({
   count,
   onAdd,
   onMinus,
@@ -21,42 +70,68 @@ function CounterDisplay({
   onAddPressIn,
   onAddPressOut,
   onMinusPressIn,
-  onMinusPressOut
-}: CounterDisplayProps) {
-  const getBatteryMessage = (val: number) => {
-    if (val < 0) return "Sagad na sagad na";
-    if (val === 0) return "Patay na";
-    if (val < 50) return "Pa charge po";
-    if (val < 100) return "Konti nalang";
-    if (val === 100) return "Yehey full na";
-    return "BOOM! Nasabugan kana";
-  };
+  onMinusPressOut,
+}: PiggyBankDisplayProps) {
+  const [fallingCoins, setFallingCoins] = useState<{ id: number }[]>([]);
+  const nextCoinId = useRef(0);
+  const prevCountRef = useRef(count);
+  const piggyScale = useSharedValue(1);
+  const lastCoinSpawnTime = useRef(0);
 
-  const getBatteryColor = (val: number) => {
-    if (val < 20) return '#EF4444';
-    if (val < 50) return '#F59E0B';
-    if (val > 100) return '#8B5CF6';
-    return '#10B981';
-  };
+  const removeCoin = useCallback((id: number) => {
+    setFallingCoins((prev) => prev.filter((coin) => coin.id !== id));
+  }, []);
 
-  const chargeWidth = Math.min(Math.max(count, 0), 100);
+  useEffect(() => {
+    if (count > prevCountRef.current) {
+      const now = Date.now();
+      if (now - lastCoinSpawnTime.current > 100) {
+        setFallingCoins((prev) => [...prev, { id: nextCoinId.current++ }]);
+        lastCoinSpawnTime.current = now;
+      }
+      piggyScale.value = withSequence(
+        withTiming(1.15, { duration: 80 }),
+        withSpring(1, { damping: 4, stiffness: 200 })
+      );
+    } else if (count < prevCountRef.current) {
+      piggyScale.value = withSequence(
+        withTiming(0.85, { duration: 80 }),
+        withSpring(1, { damping: 4, stiffness: 200 })
+      );
+    }
+    prevCountRef.current = count;
+  }, [count, piggyScale]);
+
+  const piggyStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: piggyScale.value }],
+  }));
+
+  const getMessage = (val: number) => {
+    if (val < 0) return "In Debt! 💸";
+    if (val === 0) return "Broke! 😭";
+    if (val < 50) return "Saving up... 🪙";
+    if (val < 100) return "Getting richer! 💰";
+    if (val === 100) return "Goal reached! 🎉";
+    return "Overflowing! 🤑";
+  };
 
   return (
     <View style={childStyles.container}>
       <View style={childStyles.content}>
-        <Text style={childStyles.title}>{getBatteryMessage(count)}</Text>
+        <Text style={childStyles.title}>{getMessage(count)}</Text>
 
-        <View style={childStyles.batteryWrapper}>
-          <View style={[childStyles.batteryOutline, count > 100 && { borderColor: '#EF4444' }]}>
-            <View
-              style={[
-                childStyles.batteryFill,
-                { width: `${chargeWidth}%`, backgroundColor: getBatteryColor(count) }
-              ]}
-            />
-            <Text style={childStyles.batteryText}>{count}%</Text>
+        <View style={childStyles.piggyWrapper}>
+          {fallingCoins.map((coin) => (
+            <FallingCoin key={coin.id} id={coin.id} onComplete={removeCoin} />
+          ))}
+
+          <Animated.View style={[childStyles.piggyContainer, piggyStyle]}>
+            <FontAwesome5 name="piggy-bank" size={110} color="#F472B6" />
+          </Animated.View>
+
+          <View style={childStyles.countBadge}>
+            <Text style={childStyles.countBadgeText}>${count}</Text>
           </View>
-          <View style={[childStyles.batteryNub, count > 100 && { backgroundColor: '#EF4444' }]} />
         </View>
 
         <View style={childStyles.counterRow}>
@@ -79,12 +154,8 @@ function CounterDisplay({
           />
         </View>
 
-        <View style={{ width: '100%', marginTop: 24 }}>
-          <CounterButton
-            title="Reset"
-            color="#475569"
-            onPress={onReset}
-          />
+        <View style={{ width: "100%", marginTop: 24 }}>
+          <CounterButton title="Smash Piggy Bank" color="#8B5CF6" onPress={onReset} />
         </View>
       </View>
     </View>
@@ -92,17 +163,17 @@ function CounterDisplay({
 }
 
 export default function App() {
-  const [count, setCount] = useState(100);
+  const [count, setCount] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleAdd = () => setCount(prev => prev + 1);
-  const handleMinus = () => setCount(prev => prev - 1);
-  const handleReset = () => setCount(100);
+  const handleAdd = () => setCount((prev) => prev + 1);
+  const handleMinus = () => setCount((prev) => prev - 1);
+  const handleReset = () => setCount(0);
 
   const startAdding = () => {
     timeoutRef.current = setTimeout(() => {
-      intervalRef.current = setInterval(() => setCount(prev => prev + 1), 50);
+      intervalRef.current = setInterval(() => setCount((prev) => prev + 1), 50);
     }, 300);
   };
 
@@ -115,7 +186,7 @@ export default function App() {
 
   const startMinus = () => {
     timeoutRef.current = setTimeout(() => {
-      intervalRef.current = setInterval(() => setCount(prev => prev - 1), 50);
+      intervalRef.current = setInterval(() => setCount((prev) => prev - 1), 50);
     }, 300);
   };
 
@@ -130,14 +201,13 @@ export default function App() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.parentContainer}>
-
           <View style={styles.parentContent}>
             <View style={styles.stateLockerBox}>
-              <Text style={styles.stateLockerTitle}>STATE LOCKER</Text>
-              <Text style={styles.stateLockerCount}>Count: {count}</Text>
+              <Text style={styles.stateLockerTitle}>SAVINGS LOCKER</Text>
+              <Text style={styles.stateLockerCount}>Current: ${count}</Text>
             </View>
 
-            <CounterDisplay
+            <PiggyBankDisplay
               count={count}
               onAdd={handleAdd}
               onMinus={handleMinus}
@@ -157,148 +227,142 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0F172A'
+    backgroundColor: "#0B0F19",
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24
+    justifyContent: "center",
+    padding: 24,
   },
   parentContainer: {
-    backgroundColor: '#1E293B',
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: '#000',
+    backgroundColor: "#131C2D",
+    borderRadius: 40,
+    padding: 8,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+    elevation: 15,
     borderWidth: 1,
-    borderColor: '#334155'
-  },
-  parentBadge: {
-    backgroundColor: '#3B82F6',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 20
-  },
-  parentBadgeText: {
-    color: '#EFF6FF',
-    fontWeight: '700',
-    fontSize: 10,
-    letterSpacing: 1
+    borderColor: "rgba(255, 255, 255, 0.05)",
   },
   parentContent: {
-    padding: 0
+    padding: 16,
   },
   stateLockerBox: {
-    backgroundColor: '#0F172A',
-    padding: 20,
-    borderRadius: 16,
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.2)",
+    padding: 16,
+    borderRadius: 20,
+    alignItems: "center",
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#334155'
+    borderColor: "rgba(255, 255, 255, 0.05)",
   },
   stateLockerTitle: {
-    color: '#94A3B8',
-    fontWeight: '600',
+    color: "#64748B",
+    fontWeight: "700",
     fontSize: 12,
-    letterSpacing: 1.5,
-    marginBottom: 8
+    letterSpacing: 2,
+    marginBottom: 4,
   },
   stateLockerCount: {
-    color: '#10B981',
-    fontWeight: '900',
-    fontSize: 32
-  }
+    color: "#38BDF8",
+    fontWeight: "900",
+    fontSize: 28,
+  },
 });
 
 const childStyles = StyleSheet.create({
   container: {
-    backgroundColor: '#334155',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5
-  },
-  headerBadge: {
-    backgroundColor: '#475569',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginBottom: 16
-  },
-  headerBadgeText: {
-    color: '#F8FAFC',
-    fontWeight: '600',
-    fontSize: 10,
-    letterSpacing: 0.5
+    backgroundColor: "rgba(30, 41, 59, 0.7)",
+    borderRadius: 32,
+    padding: 32,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   content: {
-    alignItems: 'center'
+    alignItems: "center",
   },
   title: {
-    fontSize: 16,
-    color: '#F8FAFC',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10
+    fontSize: 22,
+    color: "#F8FAFC",
+    fontWeight: "800",
+    textAlign: "center",
+    marginBottom: 20,
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
   },
-  batteryWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  batteryOutline: {
+  piggyWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+    height: 220,
     width: 220,
-    height: 80,
-    borderWidth: 5,
-    borderColor: '#94A3B8',
-    borderRadius: 16,
-    padding: 4,
-    justifyContent: 'center',
+    marginVertical: 20,
+    backgroundColor: "rgba(244, 114, 182, 0.1)",
+    borderRadius: 110,
+    borderWidth: 2,
+    borderColor: "rgba(244, 114, 182, 0.3)",
   },
-  batteryFill: {
-    height: '100%',
-    borderRadius: 8,
+  piggyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 5,
   },
-  batteryNub: {
-    width: 12,
-    height: 36,
-    backgroundColor: '#94A3B8',
-    borderTopRightRadius: 6,
-    borderBottomRightRadius: 6,
-    marginLeft: 2,
+  countBadge: {
+    position: "absolute",
+    bottom: -15,
+    backgroundColor: "#10B981",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 3,
+    borderColor: "#0F172A",
+    zIndex: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  batteryText: {
-    position: 'absolute',
-    width: '100%',
-    textAlign: 'center',
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-    left: 4, // offset the padding
+  countBadgeText: {
+    color: "#FFFFFF",
+    fontWeight: "900",
+    fontSize: 24,
+  },
+  coin: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FBBF24",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "#F59E0B",
+    shadowColor: "#F59E0B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  coinText: {
+    color: "#B45309",
+    fontWeight: "900",
+    fontSize: 20,
   },
   counterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    paddingHorizontal: 10,
-    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    marginTop: 32,
     marginBottom: 10,
   },
   spacer: {
     width: 40,
-  }
+  },
 });
