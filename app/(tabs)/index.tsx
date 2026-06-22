@@ -187,7 +187,7 @@ function PiggyBankDisplay({
         </View>
 
         <View style={{ width: "100%", marginTop: 24 }}>
-          <CounterButton title="Smash Piggy Bank" color="#8B5CF6" onPress={onReset} />
+          <CounterButton title={count < 0 ? "Pay the debt" : "Smash Piggy Bank"} color="#8B5CF6" onPress={onReset} />
         </View>
       </View>
     </View>
