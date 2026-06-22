@@ -1,50 +1,125 @@
-# Welcome to your Expo app 👋
+# 📱 React Native – Parent & Child Component Practice
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A hands-on activity log documenting our practice session on **passing data between Parent and Child components** in React Native.
 
-## Get started
+---
 
-1. Install dependencies
+## 📺 Demo
 
-   ```bash
-   npm install
-   ```
+▶️ [Watch on YouTube Shorts](https://www.youtube.com/shorts/F7jDPAYPN8Y)
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## 📺 Screeenshots
+<img width="946" height="2047" alt="c5a6555f-f8a8-4c81-b926-248ee58a4bee" src="https://github.com/user-attachments/assets/9f822c64-a50b-4969-b2e9-33a7acf7ca43" />
 
-In the output, you'll find options to open the app in a
+## 🎯 Activity Overview
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+This activity focuses on understanding how **props** flow from a Parent component down to Child components in React Native — one of the core concepts of React's component architecture.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## 🧠 Concepts Practiced
 
-When you're ready, run:
+- Creating **Parent components** that hold and manage state
+- Passing **props** from Parent → Child
+- Building **Child components** that receive and display props
+- Understanding **one-way data flow** in React Native
+- Rendering lists of Child components from a Parent
 
-```bash
-npm run reset-project
+---
+
+## 📂 Project Structure
+
+```
+project/
+├── App.js                  # Entry point
+├── components/
+│   ├── ParentComponent.js  # Manages state, passes props
+│   └── ChildComponent.js   # Receives and displays props
+└── README.md
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## 🔧 Example Code
 
-To learn more about developing your project with Expo, look at the following resources:
+### ParentComponent.js
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```jsx
+import React, { useState } from 'react';
+import { View, Text } from 'react-native';
+import ChildComponent from './ChildComponent';
 
-## Join the community
+const ParentComponent = () => {
+  const [message, setMessage] = useState('Hello from Parent!');
 
-Join our community of developers creating universal apps.
+  return (
+    <View>
+      <Text>I am the Parent</Text>
+      <ChildComponent message={message} />
+    </View>
+  );
+};
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+export default ParentComponent;
+```
+
+### ChildComponent.js
+
+```jsx
+import React from 'react';
+import { View, Text } from 'react-native';
+
+const ChildComponent = ({ message }) => {
+  return (
+    <View>
+      <Text>I am the Child</Text>
+      <Text>{message}</Text>
+    </View>
+  );
+};
+
+export default ChildComponent;
+```
+
+---
+
+## 🚀 How to Run
+
+```bash
+# Install dependencies
+npm install
+
+# Start the project
+npx expo start
+```
+
+---
+
+## 📌 Key Takeaways
+
+| Concept | Description |
+|---|---|
+| **Props** | Data passed from Parent to Child |
+| **State** | Managed in the Parent, triggers re-renders |
+| **One-way flow** | Data flows down, never up (unless using callbacks) |
+| **Reusability** | Child components can be reused with different props |
+
+---
+
+## 👨‍💻 Activity Log
+
+- ✅ Created Parent component with state
+- ✅ Passed props to Child component
+- ✅ Rendered Child inside Parent
+- ✅ Tested on device/emulator
+- ✅ Recorded demo on YouTube Shorts
+
+---
+
+## 🛠 Tech Stack
+
+- **React Native**
+- **Expo**
+- **JavaScript (ES6+)**
