@@ -1,16 +1,17 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
-import CounterButton from "../../components/CounterButton";
 import { FontAwesome5 } from "@expo/vector-icons";
+import { Audio } from 'expo-av';
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSpring,
-  withSequence,
-  runOnJS,
   Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
+import CounterButton from "../../components/CounterButton";
 
 function FallingCoin({ id, onComplete }: { id: number; onComplete: (id: number) => void }) {
   const translateY = useSharedValue(-60);
@@ -77,6 +78,34 @@ function PiggyBankDisplay({
   const prevCountRef = useRef(count);
   const piggyScale = useSharedValue(1);
   const lastCoinSpawnTime = useRef(0);
+  const [sound, setSound] = useState<Audio.Sound>();
+
+  useEffect(() => {
+    let currentSound: Audio.Sound | null = null;
+    async function loadSound() {
+      try {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+        });
+        const { sound: audioSound } = await Audio.Sound.createAsync(
+          require('../../assets/coin.mp3')
+        );
+        currentSound = audioSound;
+        setSound(audioSound);
+      } catch (e) {
+        console.warn("Failed to load sound", e);
+      }
+    }
+    loadSound();
+
+    return () => {
+      if (currentSound) {
+        currentSound.unloadAsync();
+      }
+    };
+  }, []);
 
   const removeCoin = useCallback((id: number) => {
     setFallingCoins((prev) => prev.filter((coin) => coin.id !== id));
@@ -88,6 +117,9 @@ function PiggyBankDisplay({
       if (now - lastCoinSpawnTime.current > 100) {
         setFallingCoins((prev) => [...prev, { id: nextCoinId.current++ }]);
         lastCoinSpawnTime.current = now;
+        if (sound) {
+          sound.replayAsync();
+        }
       }
       piggyScale.value = withSequence(
         withTiming(1.15, { duration: 80 }),
@@ -100,7 +132,7 @@ function PiggyBankDisplay({
       );
     }
     prevCountRef.current = count;
-  }, [count, piggyScale]);
+  }, [count, piggyScale, sound]);
 
   const piggyStyle = useAnimatedStyle(() => ({
     transform: [{ scale: piggyScale.value }],
